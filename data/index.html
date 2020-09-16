@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<meta charset="utf-8" />
+<title>RAFL Interface</title>
+ 
+
+<div id = "display">
+    <h3 style = "text-align: center;">Debug Console</h3>
+</div>
+
+<div id = "debug console" 
+     style="height: 200px;width: 600px;
+     overflow: auto;border: 1px solid black;
+     margin-bottom: 2px;margin-top: 2px;
+     background-color: whitesmoke; 
+     margin: auto">  
+</div>
+
+
+<div id = "client input" style = "max-width: fit-content; max-height: fit-content; margin:auto; margin-top: 7px"> 
+    <input id = "text_input" type = "text"> 
+    <button id = "text_submit" onclick="client_sending_data()">Send Message</button>
+    <p id = "message_show" style = "font-family: Cambria; font-size: 14px; margin-left: 10px; margin-top: 5px"></p>
+</div>
+
+
+<script language="javascript" type="text/javascript">
+ 
+var url = "ws://192.168.4.1:1337/";
+
+// This is called when the page finishes loading
+function init() {
+ 
+    // Assign page elements to variables
+    wsConnect(url);
+}
+ 
+// Call this to connect to the WebSocket server
+function wsConnect(url) {
+    
+    // Connect to WebSocket server
+    websocket = new WebSocket(url);
+    
+    // Assign callbacks
+    websocket.onopen = function(evt) { onOpen(evt) };
+    websocket.onclose = function(evt) { onClose(evt) };
+    websocket.onmessage = function(evt) { onMessage(evt) };
+    websocket.onerror = function(evt) { onError(evt) };
+}
+ 
+// Called when a WebSocket connection is established with the server
+function onOpen(evt) {
+    // Log connection state
+    // console.log("Connected");
+    doSend("<#SS>");
+}
+ 
+// Called when the WebSocket connection is closed
+function onClose(evt) {
+    // Log disconnection state
+    console.log("Disconnected");    
+    // Try to reconnect after a few seconds
+    setTimeout(function() { wsConnect(url) }, 2000);
+}
+ 
+// Called when a message is received from the server
+var i = 0;
+function onMessage(evt) {
+    // Print out our received message
+    // .log("Received [S->C]: " + evt.data);
+    switch(evt.data)
+    {
+        case "No changes" :
+        {
+            doSend("<#SC>");
+        }break;
+
+        default:
+        {
+            var node = document.createTextNode(evt.data); // [A] means Arduino sending data to Client
+            if(i == 0){
+                var division = document.getElementById("debug console");
+                var para = document.createElement("P");
+                var break_line = document.createElement("br");
+                para.id = "new_text";
+                para.style.fontFamily = "consolas";
+                para.style.fontSize = "14px";
+                para.style.marginLeft = "5px";
+                para.style.marginTop = "0px";
+                para.style.marginBottom = "5px";
+                para.append(node);
+                para.append(break_line);
+                i++;
+            }
+            else{
+                var para = document.getElementById("new_text");
+                var break_line = document.createElement("br");
+                para.append(node);
+                para.append(break_line);
+            }
+            document.getElementById("debug console").appendChild(para);
+            document.getElementById("debug console").scrollTop = document.getElementById("debug console").scrollHeight; //auto-scroll down
+            doSend("<#SC>");
+        } break;
+    }
+}
+ 
+// Called when a WebSocket error occurs
+function onError(evt) {
+    // console.log("ERROR: " + evt.data);
+}
+ 
+// Sends a message to the server (and prints it to the console)
+function doSend(message) {
+    // console.log("Sending [C->S]: " + message);
+    websocket.send(message);
+}
+
+var myin = document.getElementById("text_input");
+myin.addEventListener("keyup", function(event) {
+    if(event.keyCode == 13){
+        event.preventDefault();
+        document.getElementById("text_submit").click(); 
+    }
+});
+
+function client_sending_data(){
+    var client_data = document.getElementById("text_input").value; //[C] means client sending data to Arduino
+    document.getElementById("message_show").innerHTML = "Message sent: " + client_data;
+
+    var node =  document.createTextNode("Message sent: " + client_data);
+    var para = document.getElementById("new_text");
+    var break_line = document.createElement("br");
+    para.append(node);
+    para.append(break_line);
+    document.getElementById("debug console").appendChild(para);
+    document.getElementById("debug console").scrollTop = document.getElementById("debug console").scrollHeight; //auto-scroll down
+    doSend("<#CM>");
+    doSend(client_data);
+}
+
+// Call the init function as soon as the page loads
+window.addEventListener("load", init, false);
+</script>
+
